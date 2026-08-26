@@ -1,17 +1,21 @@
-# RTOS_01_LED_UART_OLED
+# RTOS_13_Timer
 
 ## Introduction
 
-This project is based on the STM32F103 series MCU, STM32 HAL library, and **FreeRTOS** (CMSIS-RTOS v2) real-time operating system. It demonstrates a classic multi-tasking concurrent execution application.
-The system features three concurrent tasks: LED toggling, UART string transmission, and OLED display updating, configured using STM32CubeMX and built with CMake.
+This project is based on the STM32F103 series MCU, STM32 HAL library, and **FreeRTOS** (CMSIS-RTOS v2) real-time operating system. It demonstrates the integration of various FreeRTOS timer and synchronization mechanisms with hardware timers, displaying their activity on an OLED screen. The project is configured using STM32CubeMX and built with CMake.
 
 ## Key Features
 
 - **FreeRTOS Multi-Tasking**: Manages and schedules concurrent tasks using the CMSIS-RTOS v2 API.
-- **LED Task (`LEDTask`)**: Controls the onboard LED on pin `PC13`, toggling its state every 1000ms (Priority: Normal).
-- **UART Task (`UARTTask`)**: Transmits `"UART Sending...\r\n"` via USART1 every 2000ms (Priority: Low).
-- **OLED Task (`OLEDTask`)**: Uses software I2C to drive the OLED display (`PB9`=SCL, `PB8`=SDA), dynamically updating an incrementing hex counter and blinking status text (Priority: Low).
+- **OLED Display**: Uses software I2C to drive the OLED display (`PB9`=SCL, `PB8`=SDA), showing the status of different timer-related tasks.
 - **Modular Software Architecture**: Seamlessly integrates STM32CubeMX HAL/FreeRTOS code with custom user drivers.
+
+| Task Name                 | Type             | Mechanism Used          | Description                                                                                             |
+| :------------------------ | :--------------- | :---------------------- | :------------------------------------------------------------------------------------------------------ |
+| `StartTaskSwTmr1`         | Software Timer   | Task Notifications      | Periodically displays "SwTmr 1 running." on the OLED.                                                   |
+| `StartTaskSwTmr2`         | Software Timer   | Message Queue           | Periodically displays "SwTmr 2 running." on the OLED.                                                   |
+| `StartTaskTIM1`           | Hardware Timer   | Event Flags             | Integrates STM32's TIM1 hardware timer with FreeRTOS event flags to periodically display "TIM 1 running." on the OLED. |
+| `StartTaskTIM2`           | Hardware Timer   | Semaphores              | Integrates STM32's TIM2 hardware timer with FreeRTOS semaphores to periodically display "TIM 2 running." on the OLED. |
 
 ## Key Files
 
@@ -19,7 +23,7 @@ The system features three concurrent tasks: LED toggling, UART string transmissi
 - `CMakePresets.json`: Configuration and build presets supporting `Debug` and `Release`.
 - `config.ioc`: STM32CubeMX project configuration file.
 - `Core/Src/main.c`: Main entry point initializing HAL, system clock, peripherals, and starting the FreeRTOS scheduler.
-- `Core/Src/freertos.c`: FreeRTOS task definitions and entry functions (`EntryLEDTask`, `EntryUARTTask`, `EntryOLEDTask`).
+- `Core/Src/timertasks.c`: FreeRTOS task definitions and entry functions (`StartTaskSwTmr1`, `StartTaskSwTmr2`, `StartTaskTIM1`, `StartTaskTIM2`).
 - `Core/Src/OLED.c`: OLED display control logic and software I2C driver implementation.
 - `Core/Inc/OLED.h`: Header file declaring OLED functions.
 - `Core/Inc/OLED_Font.h`: Font library data for ASCII character display.
@@ -39,7 +43,7 @@ The system features three concurrent tasks: LED toggling, UART string transmissi
 Recommended using VS Code CMake Tools or executing commands in terminal:
 
 ```bash
-cd d:/Electronics/RTOS/RTOS_Projects/RTOS_01_LED_UART_OLED
+cd d:/Electronics/RTOS/RTOS_Projects/RTOS_13_Timer
 cmake --preset Debug
 cmake --build --preset Debug
 ```
@@ -48,14 +52,11 @@ cmake --build --preset Debug
 
 1. After a successful build, flash the generated binary file (`.elf`, `.hex`, or `.bin`) to the target board using ST-Link, DAP-Link, or J-Link.
 2. Upon system reset or power-up:
-   - Onboard LED (`PC13`) toggles every 1 second.
-   - Serial terminal connected to USART1 (115200 8N1) receives `"UART Sending...\r\n"` every 2 seconds.
-   - OLED screen displays an incrementing hexadecimal value with blinking status text.
+   - The OLED screen will display the running status of the four timer tasks: "SwTmr 1 running.", "SwTmr 2 running.", "TIM 1 running.", and "TIM 2 running.", each appearing and disappearing periodically.
 
 ## Hardware Specification
 
 - **Target MCU**: STM32F103 series (e.g., STM32F103C8T6)
-- **LED Pin**: `PC13`
 - **USART1 Pins**: `PA9` (TX), `PA10` (RX)
 - **OLED (Software I2C)**:
   - `PB9`: SCL (Clock)
