@@ -26,9 +26,6 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "OLED.h"
-#include "usart.h"
-#include <string.h>
-
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,26 +47,58 @@
 /* USER CODE BEGIN Variables */
 
 /* USER CODE END Variables */
-/* Definitions for LEDTask */
-osThreadId_t LEDTaskHandle;
-const osThreadAttr_t LEDTask_attributes = {
-  .name = "LEDTask",
+/* Definitions for TaskSwTmr1 */
+osThreadId_t TaskSwTmr1Handle;
+const osThreadAttr_t TaskSwTmr1_attributes = {
+  .name = "TaskSwTmr1",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityRealtime,
+};
+/* Definitions for TaskSwTmr2 */
+osThreadId_t TaskSwTmr2Handle;
+const osThreadAttr_t TaskSwTmr2_attributes = {
+  .name = "TaskSwTmr2",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
+};
+/* Definitions for TaskTIM1 */
+osThreadId_t TaskTIM1Handle;
+const osThreadAttr_t TaskTIM1_attributes = {
+  .name = "TaskTIM1",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
-/* Definitions for UARTTask */
-osThreadId_t UARTTaskHandle;
-const osThreadAttr_t UARTTask_attributes = {
-  .name = "UARTTask",
+/* Definitions for TaskTIM2 */
+osThreadId_t TaskTIM2Handle;
+const osThreadAttr_t TaskTIM2_attributes = {
+  .name = "TaskTIM2",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityBelowNormal,
 };
-/* Definitions for OLEDTask */
-osThreadId_t OLEDTaskHandle;
-const osThreadAttr_t OLEDTask_attributes = {
-  .name = "OLEDTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+/* Definitions for SwTmr1 */
+osTimerId_t SwTmr1Handle;
+const osTimerAttr_t SwTmr1_attributes = {
+  .name = "SwTmr1"
+};
+/* Definitions for SwTmr2 */
+osTimerId_t SwTmr2Handle;
+const osTimerAttr_t SwTmr2_attributes = {
+  .name = "SwTmr2"
+};
+/* Definitions for SwTmr2Mutex */
+osMutexId_t SwTmr2MutexHandle;
+const osMutexAttr_t SwTmr2Mutex_attributes = {
+  .name = "SwTmr2Mutex"
+};
+/* Definitions for TIM2Smph */
+osSemaphoreId_t TIM2SmphHandle;
+const osSemaphoreAttr_t TIM2Smph_attributes = {
+  .name = "TIM2Smph"
+};
+/* Definitions for TIM1EvtFlag */
+osEventFlagsId_t TIM1EvtFlagHandle;
+const osEventFlagsAttr_t TIM1EvtFlag_attributes = {
+  .name = "TIM1EvtFlag"
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -77,9 +106,12 @@ const osThreadAttr_t OLEDTask_attributes = {
 
 /* USER CODE END FunctionPrototypes */
 
-void EntryLEDTask(void *argument);
-void EntryUARTTask(void *argument);
-void EntryOLEDTask(void *argument);
+void StartTaskSwTmr1(void *argument);
+void StartTaskSwTmr2(void *argument);
+void StartTaskTIM1(void *argument);
+void StartTaskTIM2(void *argument);
+void SwTmr1Callback(void *argument);
+void SwTmr2Callback(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -112,14 +144,28 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
+  /* Create the mutex(es) */
+  /* creation of SwTmr2Mutex */
+  SwTmr2MutexHandle = osMutexNew(&SwTmr2Mutex_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
+  /* Create the semaphores(s) */
+  /* creation of TIM2Smph */
+  TIM2SmphHandle = osSemaphoreNew(1, 0, &TIM2Smph_attributes);
+
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
+
+  /* Create the timer(s) */
+  /* creation of SwTmr1 */
+  SwTmr1Handle = osTimerNew(SwTmr1Callback, osTimerOnce, NULL, &SwTmr1_attributes);
+
+  /* creation of SwTmr2 */
+  SwTmr2Handle = osTimerNew(SwTmr2Callback, osTimerPeriodic, NULL, &SwTmr2_attributes);
 
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
@@ -130,18 +176,24 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of LEDTask */
-  LEDTaskHandle = osThreadNew(EntryLEDTask, NULL, &LEDTask_attributes);
+  /* creation of TaskSwTmr1 */
+  TaskSwTmr1Handle = osThreadNew(StartTaskSwTmr1, NULL, &TaskSwTmr1_attributes);
 
-  /* creation of UARTTask */
-  UARTTaskHandle = osThreadNew(EntryUARTTask, NULL, &UARTTask_attributes);
+  /* creation of TaskSwTmr2 */
+  TaskSwTmr2Handle = osThreadNew(StartTaskSwTmr2, NULL, &TaskSwTmr2_attributes);
 
-  /* creation of OLEDTask */
-  OLEDTaskHandle = osThreadNew(EntryOLEDTask, NULL, &OLEDTask_attributes);
+  /* creation of TaskTIM1 */
+  TaskTIM1Handle = osThreadNew(StartTaskTIM1, NULL, &TaskTIM1_attributes);
+
+  /* creation of TaskTIM2 */
+  TaskTIM2Handle = osThreadNew(StartTaskTIM2, NULL, &TaskTIM2_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
+
+  /* creation of TIM1EvtFlag */
+  TIM1EvtFlagHandle = osEventFlagsNew(&TIM1EvtFlag_attributes);
 
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
@@ -149,66 +201,92 @@ void MX_FREERTOS_Init(void) {
 
 }
 
-/* USER CODE BEGIN Header_EntryLEDTask */
+/* USER CODE BEGIN Header_StartTaskSwTmr1 */
 /**
- * @brief  Function implementing the LEDTask thread.
- * @param  argument: Not used
- * @retval None
- */
-/* USER CODE END Header_EntryLEDTask */
-void EntryLEDTask(void *argument)
+  * @brief  Function implementing the TaskSwTmr1 thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartTaskSwTmr1 */
+void StartTaskSwTmr1(void *argument)
 {
-  /* USER CODE BEGIN EntryLEDTask */
+  /* USER CODE BEGIN StartTaskSwTmr1 */
   /* Infinite loop */
-  for (;;) {
-    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-    osDelay(1000);
+  for(;;)
+  {
+    osDelay(1);
   }
-  /* USER CODE END EntryLEDTask */
+  /* USER CODE END StartTaskSwTmr1 */
 }
 
-/* USER CODE BEGIN Header_EntryUARTTask */
+/* USER CODE BEGIN Header_StartTaskSwTmr2 */
 /**
- * @brief Function implementing the UARTTask thread.
- * @param argument: Not used
- * @retval None
- */
-/* USER CODE END Header_EntryUARTTask */
-void EntryUARTTask(void *argument)
+* @brief Function implementing the TaskSwTmr2 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTaskSwTmr2 */
+void StartTaskSwTmr2(void *argument)
 {
-  /* USER CODE BEGIN EntryUARTTask */
-  char *str = "UART Sending...\r\n";
+  /* USER CODE BEGIN StartTaskSwTmr2 */
   /* Infinite loop */
-  for (;;) {
-    HAL_UART_Transmit(&huart1, (uint8_t *)str, strlen(str), HAL_MAX_DELAY);
-    osDelay(2000);
+  for(;;)
+  {
+    osDelay(1);
   }
-  /* USER CODE END EntryUARTTask */
+  /* USER CODE END StartTaskSwTmr2 */
 }
 
-/* USER CODE BEGIN Header_EntryOLEDTask */
+/* USER CODE BEGIN Header_StartTaskTIM1 */
 /**
- * @brief Function implementing the OLEDTask thread.
- * @param argument: Not used
- * @retval None
- */
-/* USER CODE END Header_EntryOLEDTask */
-void EntryOLEDTask(void *argument)
+* @brief Function implementing the TaskTIM1 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTaskTIM1 */
+void StartTaskTIM1(void *argument)
 {
-  /* USER CODE BEGIN EntryOLEDTask */
-  uint16_t data = 0;
-  OLED_Init();
-  OLED_ShowString(1, 1, "data:");
+  /* USER CODE BEGIN StartTaskTIM1 */
   /* Infinite loop */
-  for (;;) {
-    OLED_ShowHexNum(1, 7, data, 4);
-    OLED_ShowString(2, 1, "OLED Refreshing");
-    osDelay(250);
-    OLED_ShowString(2, 1, "                ");
-    osDelay(250);
-    data++;
+  for(;;)
+  {
+    osDelay(1);
   }
-  /* USER CODE END EntryOLEDTask */
+  /* USER CODE END StartTaskTIM1 */
+}
+
+/* USER CODE BEGIN Header_StartTaskTIM2 */
+/**
+* @brief Function implementing the TaskTIM2 thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTaskTIM2 */
+void StartTaskTIM2(void *argument)
+{
+  /* USER CODE BEGIN StartTaskTIM2 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartTaskTIM2 */
+}
+
+/* SwTmr1Callback function */
+void SwTmr1Callback(void *argument)
+{
+  /* USER CODE BEGIN SwTmr1Callback */
+
+  /* USER CODE END SwTmr1Callback */
+}
+
+/* SwTmr2Callback function */
+void SwTmr2Callback(void *argument)
+{
+  /* USER CODE BEGIN SwTmr2Callback */
+
+  /* USER CODE END SwTmr2Callback */
 }
 
 /* Private application code --------------------------------------------------*/
