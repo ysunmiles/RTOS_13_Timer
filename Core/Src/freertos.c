@@ -75,6 +75,11 @@ const osThreadAttr_t TaskTIM2_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
+/* Definitions for SwTmr2Queue */
+osMessageQueueId_t SwTmr2QueueHandle;
+const osMessageQueueAttr_t SwTmr2Queue_attributes = {
+  .name = "SwTmr2Queue"
+};
 /* Definitions for SwTmr1 */
 osTimerId_t SwTmr1Handle;
 const osTimerAttr_t SwTmr1_attributes = {
@@ -84,11 +89,6 @@ const osTimerAttr_t SwTmr1_attributes = {
 osTimerId_t SwTmr2Handle;
 const osTimerAttr_t SwTmr2_attributes = {
   .name = "SwTmr2"
-};
-/* Definitions for SwTmr2Mutex */
-osMutexId_t SwTmr2MutexHandle;
-const osMutexAttr_t SwTmr2Mutex_attributes = {
-  .name = "SwTmr2Mutex"
 };
 /* Definitions for TIM2Smph */
 osSemaphoreId_t TIM2SmphHandle;
@@ -144,9 +144,6 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 
   /* USER CODE END Init */
-  /* Create the mutex(es) */
-  /* creation of SwTmr2Mutex */
-  SwTmr2MutexHandle = osMutexNew(&SwTmr2Mutex_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
@@ -171,6 +168,10 @@ void MX_FREERTOS_Init(void) {
   /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
 
+  /* Create the queue(s) */
+  /* creation of SwTmr2Queue */
+  SwTmr2QueueHandle = osMessageQueueNew (5, sizeof(uint8_t), &SwTmr2Queue_attributes);
+
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
   /* USER CODE END RTOS_QUEUES */
@@ -192,6 +193,7 @@ void MX_FREERTOS_Init(void) {
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
+  /* Create the event(s) */
   /* creation of TIM1EvtFlag */
   TIM1EvtFlagHandle = osEventFlagsNew(&TIM1EvtFlag_attributes);
 
@@ -208,7 +210,7 @@ void MX_FREERTOS_Init(void) {
   * @retval None
   */
 /* USER CODE END Header_StartTaskSwTmr1 */
-void StartTaskSwTmr1(void *argument)
+__weak void StartTaskSwTmr1(void *argument)
 {
   /* USER CODE BEGIN StartTaskSwTmr1 */
   /* Infinite loop */
@@ -226,7 +228,7 @@ void StartTaskSwTmr1(void *argument)
 * @retval None
 */
 /* USER CODE END Header_StartTaskSwTmr2 */
-void StartTaskSwTmr2(void *argument)
+__weak void StartTaskSwTmr2(void *argument)
 {
   /* USER CODE BEGIN StartTaskSwTmr2 */
   /* Infinite loop */
@@ -244,7 +246,7 @@ void StartTaskSwTmr2(void *argument)
 * @retval None
 */
 /* USER CODE END Header_StartTaskTIM1 */
-void StartTaskTIM1(void *argument)
+__weak void StartTaskTIM1(void *argument)
 {
   /* USER CODE BEGIN StartTaskTIM1 */
   /* Infinite loop */
@@ -262,7 +264,7 @@ void StartTaskTIM1(void *argument)
 * @retval None
 */
 /* USER CODE END Header_StartTaskTIM2 */
-void StartTaskTIM2(void *argument)
+__weak void StartTaskTIM2(void *argument)
 {
   /* USER CODE BEGIN StartTaskTIM2 */
   /* Infinite loop */
@@ -274,7 +276,7 @@ void StartTaskTIM2(void *argument)
 }
 
 /* SwTmr1Callback function */
-void SwTmr1Callback(void *argument)
+__weak void SwTmr1Callback(void *argument)
 {
   /* USER CODE BEGIN SwTmr1Callback */
 
@@ -282,7 +284,7 @@ void SwTmr1Callback(void *argument)
 }
 
 /* SwTmr2Callback function */
-void SwTmr2Callback(void *argument)
+__weak void SwTmr2Callback(void *argument)
 {
   /* USER CODE BEGIN SwTmr2Callback */
 

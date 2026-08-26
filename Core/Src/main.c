@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "cmsis_os2.h"
 #include "tim.h"
 #include "gpio.h"
 
@@ -169,7 +170,15 @@ void SystemClock_Config(void)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   /* USER CODE BEGIN Callback 0 */
-
+  if (htim->Instance == TIM1)
+  {
+    osEventFlagsSet(TIM1EvtFlagHandle, 0x01);
+    HAL_TIM_Base_Start_IT(&htim1);
+  }
+  else if (htim->Instance == TIM2)
+  {
+    osSemaphoreRelease(TIM2SmphHandle);
+  }
   /* USER CODE END Callback 0 */
   if (htim->Instance == TIM4)
   {

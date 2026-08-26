@@ -1,4 +1,5 @@
 #include "OLED_Font.h"
+#include "cmsis_os2.h"
 #include "stm32f1xx_hal.h"
 #include "main.h"
 

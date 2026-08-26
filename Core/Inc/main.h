@@ -31,7 +31,7 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "cmsis_os2.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -41,7 +41,17 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
+extern osThreadId_t TaskSwTmr1Handle;
+extern osThreadId_t TaskSwTmr2Handle;
+extern osThreadId_t TaskTIM1Handle;
+extern osThreadId_t TaskTIM2Handle;
 
+extern osTimerId_t SwTmr1Handle;
+extern osTimerId_t SwTmr2Handle;
+
+extern osMessageQueueId_t SwTmr2QueueHandle;
+extern osEventFlagsId_t TIM1EvtFlagHandle;
+extern osSemaphoreId_t TIM2SmphHandle;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
